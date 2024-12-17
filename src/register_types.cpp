@@ -1,6 +1,6 @@
 #include "register_types.h"
 
-#include "numgd.h"
+#include "sbhot.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -13,7 +13,7 @@ void initialize_example_module(ModuleInitializationLevel p_level) {
 		return;
 	}
 
-	ClassDB::register_class<Numgd>();
+	ClassDB::register_class<SBHot>();
 }
 
 void uninitialize_example_module(ModuleInitializationLevel p_level) {
