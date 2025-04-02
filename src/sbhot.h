@@ -25,6 +25,7 @@ namespace godot
 			PackedVector2Array out_buffer,
 			int out_buffer_cursor,
 			PackedVector2Array const& buffer_data,
+			int buffer_length,
 			float buffer_cursor,
 			Vector2i buffer_loop_region,
 			int loop_cross_fade_frames,

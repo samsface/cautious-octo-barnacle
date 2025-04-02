@@ -30,6 +30,7 @@ Dictionary SBHot::sampler_tick(
 	PackedVector2Array out_buffer,
 	int out_buffer_cursor,
 	PackedVector2Array const& buffer_data,
+	int buffer_length,
 	float buffer_cursor,
 	Vector2i buffer_loop_region,
 	int loop_cross_fade_frames,
@@ -46,17 +47,16 @@ Dictionary SBHot::sampler_tick(
 {
 	for (int i = 0; i < count_of_frames_to_push; i++)
 	{
-		playback_step = Math::lerp(playback_step, target_pitch_step, glide_speed);
-
-		float pitch_modulation = Math::sin(time * mod_speed) * mod_depth;
-		float modulated_step = playback_step * Math::pow(2.0f, (pitch_modulation / 12.0f));
+		if (buffer_cursor + 1.0f >= buffer_length)
+		{
+			break;
+		}
 
 		// We move the buffer cursor on a float so we have to read two frames and lerp them
 		// together based on the cursors fraction
-		int index = Math::min(static_cast<int>(buffer_cursor), static_cast<int>(buffer_data.size() - 1));
-		int next_index = Math::min(static_cast<int>(buffer_cursor + 1), static_cast<int>(buffer_data.size() - 1));
+		int index = static_cast<int>(Math::floor(buffer_cursor));
 		float fraction = buffer_cursor - static_cast<float>(index);
-		Vector2 interpolated_sample = buffer_data[index].lerp(buffer_data[next_index], fraction);
+		Vector2 interpolated_sample = buffer_data[index].lerp(buffer_data[index + 1], fraction);
 
 		// Handle looping with crossfade
 		if (buffer_loop_region.y > 0)
@@ -77,12 +77,16 @@ Dictionary SBHot::sampler_tick(
 			}
 		}
 
-
-		float distance_to_end_of_buffer = buffer_data.size() - buffer_cursor;
+		float distance_to_end_of_buffer = static_cast<float>(buffer_length) - buffer_cursor;
 		float fade_out_factor = Math::pow(Math::min(distance_to_end_of_buffer / fade_out_time, 1.0f), 2.0f);
 		float fade_in_factor = Math::pow(Math::min(buffer_cursor / fade_in_time, 1.0f), 2.0f);
 
 		out_buffer[i + out_buffer_cursor] += interpolated_sample * v * fade_in_factor * fade_out_factor;
+
+		playback_step = Math::lerp(playback_step, target_pitch_step, glide_speed);
+
+		float pitch_modulation = Math::sin(time * mod_speed) * mod_depth;
+		float modulated_step = playback_step * Math::pow(2.0f, (pitch_modulation / 12.0f));
 
 		buffer_cursor += modulated_step;
 		time += (1.0f / 44100.0f);
