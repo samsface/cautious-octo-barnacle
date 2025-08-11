@@ -1,8 +1,24 @@
 #include "sbhot.h"
 #include <godot_cpp/core/math.hpp>
+#include <godot_cpp/variant/utility_functions.hpp>
 
 using namespace godot;
 
+// Hermite interpolation for Vector2 audio samples
+Vector2 hermite4(const Vector2& y0, const Vector2& y1, const Vector2& y2, const Vector2& y3, float mu) {
+	float mu2 = mu * mu;
+	float mu3 = mu2 * mu;
+
+	Vector2 m0 = (y2 - y0) * 0.5f;
+	Vector2 m1 = (y3 - y1) * 0.5f;
+
+	Vector2 a0 = 2.0f * (y1 - y2) + m0 + m1;
+	Vector2 a1 = -3.0f * (y1 - y2) - m0 - m0 - m1;
+	Vector2 a2 = m0;
+	Vector2 a3 = y1;
+
+	return a0 * mu3 + a1 * mu2 + a2 * mu + a3;
+}
 
 void SBHot::_bind_methods() 
 {
@@ -26,15 +42,16 @@ PackedVector2Array SBHot::add_packed_vector2_arrays(
     return source;
 }
 
+
+
 Dictionary SBHot::sampler_tick(
 	PackedVector2Array out_buffer,
 	int out_buffer_cursor,
 	PackedVector2Array const& buffer_data,
-	int buffer_length,
 	float buffer_cursor,
 	Vector2i buffer_loop_region,
 	int loop_cross_fade_frames,
-	float v,
+	float volume,
 	float playback_step,
 	float mod_depth,
 	float mod_speed,
@@ -43,12 +60,17 @@ Dictionary SBHot::sampler_tick(
 	float glide_speed,
 	float fade_in_time,
 	float fade_out_time,
-	int count_of_frames_to_push) 
+	float buffer_length) 
 {
-	for (int i = 0; i < count_of_frames_to_push; i++)
+	bool done{};
+
+	for (int i = out_buffer_cursor; i < out_buffer.size(); i++)
 	{
-		if (buffer_cursor + 1.0f >= buffer_length)
+		float time_to_end_of_buffer = buffer_length - time;
+
+		if (time_to_end_of_buffer <= 0.0)
 		{
+			done = true;
 			break;
 		}
 
@@ -56,7 +78,27 @@ Dictionary SBHot::sampler_tick(
 		// together based on the cursors fraction
 		int index = static_cast<int>(Math::floor(buffer_cursor));
 		float fraction = buffer_cursor - static_cast<float>(index);
-		Vector2 interpolated_sample = buffer_data[index].lerp(buffer_data[index + 1], fraction);
+		//Vector2 interpolated_sample = buffer_data[index].lerp(buffer_data[index + 1], fraction);
+
+		if (index >= buffer_data.size())
+		{
+			done = true;
+			break;
+		}
+
+		// this sounds way better than lerping for bigger pitch shifts
+		int i0 = Math::max(index - 1, 0);
+		int i1 = index;
+		int i2 = Math::min(index + 1, static_cast<int>(buffer_data.size()) - 1);
+		int i3 = Math::min(index + 2, static_cast<int>(buffer_data.size()) - 1);
+
+		Vector2 interpolated_sample = hermite4(
+			buffer_data[i0],
+			buffer_data[i1],
+			buffer_data[i2],
+			buffer_data[i3],
+			fraction
+		);
 
 		// Handle looping with crossfade
 		if (buffer_loop_region.y > 0)
@@ -77,11 +119,16 @@ Dictionary SBHot::sampler_tick(
 			}
 		}
 
-		float distance_to_end_of_buffer = static_cast<float>(buffer_length) - buffer_cursor;
-		float fade_out_factor = Math::pow(Math::min(distance_to_end_of_buffer / fade_out_time, 1.0f), 2.0f);
-		float fade_in_factor = Math::pow(Math::min(buffer_cursor / fade_in_time, 1.0f), 2.0f);
 
-		out_buffer[i + out_buffer_cursor] += interpolated_sample * v * fade_in_factor * fade_out_factor;
+		float fade_out_factor = Math::clamp(time_to_end_of_buffer / fade_out_time, 0.0f, 1.0f);
+		fade_out_factor = Math::pow(fade_out_factor, 2.0f);
+
+		//float fade_in_factor = Math::pow(Math::min(buffer_cursor / fade_in_time, 1.0f), 2.0f);
+		float fade_in_factor = 1.0;
+
+		interpolated_sample = interpolated_sample * volume * fade_in_factor * fade_out_factor;
+
+		out_buffer[i] += interpolated_sample;
 
 		playback_step = Math::lerp(playback_step, target_pitch_step, glide_speed);
 
@@ -90,12 +137,17 @@ Dictionary SBHot::sampler_tick(
 
 		buffer_cursor += modulated_step;
 		time += (1.0f / 44100.0f);
+			
+		//if (i % 50 == 0)
+		//	UtilityFunctions::print(interpolated_sample.x);
 	}
 
 	Dictionary result;
 	result["out_buffer"] = out_buffer;
 	result["buffer_cursor"] = buffer_cursor;
 	result["playback_step"] = playback_step;
+	result["time"] = time;
+	result["done"] = done;
 
 	return result;
 }

@@ -25,11 +25,10 @@ namespace godot
 			PackedVector2Array out_buffer,
 			int out_buffer_cursor,
 			PackedVector2Array const& buffer_data,
-			int buffer_length,
 			float buffer_cursor,
 			Vector2i buffer_loop_region,
 			int loop_cross_fade_frames,
-			float v,
+			float volume,
 			float playback_step,
 			float mod_depth,
 			float mod_speed,
@@ -38,6 +37,6 @@ namespace godot
 			float glide_speed,
 			float fade_in_time,
 			float fade_out_time,
-			int count_of_frames_to_push);
+			float buffer_length);
 	};
 }
