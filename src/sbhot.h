@@ -1,17 +1,13 @@
 #pragma once
-
 #include <godot_cpp/classes/audio_stream_player.hpp>
 #include <godot_cpp/variant/dictionary.hpp>
-
 namespace godot 
 {
 	class SBHot : public RefCounted
 	{
 		GDCLASS(SBHot, RefCounted)
-
 	protected:
 		static void _bind_methods();
-
 	public:
 		PackedVector2Array add_packed_vector2_arrays(
 			PackedVector2Array source,
@@ -20,23 +16,22 @@ namespace godot
 			int dest_position,
 			int element_count,
 			float scale_source);
-
 		Dictionary sampler_tick(
 			PackedVector2Array out_buffer,
 			int out_buffer_cursor,
 			PackedVector2Array const& buffer_data,
-			float buffer_cursor,
+			double buffer_cursor,
 			Vector2i buffer_loop_region,
 			int loop_cross_fade_frames,
-			float volume,
-			float playback_step,
-			float mod_depth,
-			float mod_speed,
-			float time,
-			float target_pitch_step,
-			float glide_speed,
-			float fade_in_time,
-			float fade_out_time,
-			float buffer_length);
+			double volume,
+			double playback_step,
+			double mod_depth,
+			double mod_speed,
+			double time,
+			double target_pitch_step,
+			double glide_speed,
+			double fade_in_time,
+			double fade_out_time,
+			double buffer_length);
 	};
 }

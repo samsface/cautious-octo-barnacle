@@ -29,7 +29,13 @@ endif()
 # let's us link depended dlls relative to process on linux
 set(CMAKE_INSTALL_RPATH "$ORIGIN")
 
-add_library(sbhot SHARED src/sbhot.cpp src/register_types.cpp)
+add_library(
+  sbhot
+  SHARED
+    src/effect_ott_compressor.cpp
+    src/sbhot.cpp
+    src/register_types.cpp
+)
 
 target_link_libraries(
   sbhot

@@ -1,5 +1,6 @@
 #include "register_types.h"
 
+#include "effect_ott_compressor.h"
 #include "sbhot.h"
 
 #include <gdextension_interface.h>
@@ -14,6 +15,8 @@ void initialize_example_module(ModuleInitializationLevel p_level) {
 	}
 
 	ClassDB::register_class<SBHot>();
+	ClassDB::register_class<EffectOTTCompressor>();
+	ClassDB::register_class<EffectOTTCompressorInstance>();
 }
 
 void uninitialize_example_module(ModuleInitializationLevel p_level) {
